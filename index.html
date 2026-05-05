@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STAR CAPTAIN VIP</title>
+
+<style>
+
+:root{
+--neon:#00ff41;
+--danger:#ff003c;
+--gold:#ffea00;
+--bg:#050505;
+}
+
+body{
+background:var(--bg);
+color:#fff;
+font-family:Segoe UI;
+margin:0;
+}
+
+.login-box{
+width:320px;
+background:#0a0a0a;
+padding:30px;
+border-radius:15px;
+box-shadow:0 0 20px #00ff41;
+text-align:center;
+margin:auto;
+margin-top:120px;
+}
+
+input{
+width:100%;
+padding:12px;
+margin:10px 0;
+border:none;
+border-radius:8px;
+background:#111;
+color:#00ff41;
+font-size:15px;
+}
+
+button{
+width:100%;
+padding:12px;
+background:#00ff41;
+border:none;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+}
+
+#error{
+color:red;
+font-size:13px;
+}
+
+.hidden{
+display:none;
+}
+
+.header-container{
+text-align:center;
+padding:30px 10px;
+}
+
+.zigzag-name{
+font-size:38px;
+font-weight:900;
+letter-spacing:5px;
+text-shadow:2px 2px var(--danger),-2px -2px var(--neon),0 0 20px var(--neon);
+}
+
+.glass-box{
+max-width:400px;
+margin:auto;
+background:rgba(255,255,255,0.03);
+border:1px solid rgba(0,255,65,0.2);
+border-radius:25px;
+padding:25px;
+text-align:center;
+}
+
+.pred-val{
+font-size:55px;
+font-weight:900;
+text-shadow:0 0 20px var(--neon);
+}
+
+table{
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
+font-size:11px;
+}
+
+td,th{
+padding:8px;
+border-bottom:1px solid #111;
+text-align:center;
+}
+
+.win{
+color:var(--neon);
+}
+
+.loss{
+color:var(--danger);
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN PAGE -->
+
+<div id="loginPage" class="login-box">
+
+<h2 style="color:#00ff41;">LOGIN PANEL</h2>
+
+<input type="text" id="username" placeholder="Username">
+
+<input type="password" id="password" placeholder="Password">
+
+<button onclick="login()">LOGIN</button>
+
+<p id="error"></p>
+
+</div>
+
+
+<!-- MAIN APP -->
+
+<div id="mainApp" class="hidden">
+
+<div class="header-container">
+<div class="zigzag-name">𝐒𝐓𝐀𝐑 𝐂𝐀𝐏𝐓𝐀𝐈𝐍 𝐕𝐈𝐏</div>
+<div style="color:var(--gold);font-size:10px;">STAR VIP LOGIC V15</div>
+</div>
+
+<div class="glass-box">
+
+<div id="pID">PERIOD: ---</div>
+
+<div class="pred-val" id="pRes">WAIT...</div>
+
+<div id="pOpps">ANALYZING...</div>
+
+<table>
+
+<thead>
+
+<tr>
+<th>PRD</th>
+<th>PRED</th>
+<th>NUM</th>
+<th>STATUS</th>
+</tr>
+
+</thead>
+
+<tbody id="logs"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* LOGIN SYSTEM */
+
+function login(){
+
+let user=document.getElementById("username").value;
+let pass=document.getElementById("password").value;
+
+if(user==="EDWARDBTY12" && pass==="basumatary101"){
+
+document.getElementById("loginPage").style.display="none";
+document.getElementById("mainApp").style.display="block";
+
+startSystem();
+
+}else{
+
+document.getElementById("error").innerText="Wrong Username or Password";
+
+}
+
+}
+
+/* PREDICTOR LOGIC */
+
+const B_POOL=[5,6,7,8,9];
+const S_POOL=[0,1,2,3,4];
+
+let currentOpposites=[];
+
+function startSystem(){
+runLogic();
+}
+
+async function runLogic(){
+
+setInterval(async()=>{
+
+try{
+
+const res=await fetch('https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json');
+
+const json=await res.json();
+
+const latest=json.data.list[0];
+
+const last5=json.data.list.slice(0,5)
+.map(x=>parseInt(x.number)>=5?"BIG":"SMALL");
+
+const nextPred=last5.filter(x=>x==="BIG").length>2?"BIG":"SMALL";
+
+if(window.lastId!==latest.issueNumber){
+
+const actualNum=parseInt(latest.number);
+
+const actualSize=actualNum>=5?"BIG":"SMALL";
+
+let lastPred=window.savedPrediction||nextPred;
+
+let lastOpps=window.savedOpps||[];
+
+if(window.lastId){
+
+const isWin=(lastPred===actualSize)||lastOpps.includes(actualNum);
+
+const row=`
+<tr>
+<td>${latest.issueNumber.slice(-3)}</td>
+<td>${lastPred}</td>
+<td>${actualNum}</td>
+<td class="${isWin?'win':'loss'}">${isWin?'WIN':'LOSS'}</td>
+</tr>`;
+
+document.getElementById('logs').innerHTML=row+
+document.getElementById('logs').innerHTML;
+
+}
+
+window.lastId=latest.issueNumber;
+
+window.savedPrediction=nextPred;
+
+const pool=nextPred==="BIG"?S_POOL:B_POOL;
+
+currentOpposites=pool.sort(()=>0.5-Math.random()).slice(0,2);
+
+window.savedOpps=currentOpposites;
+
+}
+
+document.getElementById('pID').innerText=
+"PERIOD: "+(BigInt(latest.issueNumber)+1n);
+
+document.getElementById('pRes').innerText=nextPred;
+
+document.getElementById('pOpps').innerText=
+"OPPOSITE NUMBER: "+currentOpposites.join(", ");
+
+}catch(e){}
+
+},3000);
+
+}
+
+</script>
+
+</body>
+</html>
